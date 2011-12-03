@@ -1,5 +1,5 @@
-require 'json'
-require 'curb'
+require 'httparty'
+require 'multi_json'
 
 class PagerdutyException < Exception
   attr_reader :pagerduty_instance, :api_response
@@ -11,7 +11,10 @@ class PagerdutyException < Exception
 end
 
 class Pagerduty
-  
+  include HTTParty
+
+  base_uri 'https://events.pagerduty.com/generic/2010-04-15'
+
   attr_reader :service_key, :incident_key
 
   def initialize(service_key)
@@ -34,11 +37,8 @@ protected
   def api_call(event_type, description, details = {})
     params = { :event_type => event_type, :service_key => @service_key, :description => description, :details => details }
     params.merge!({ :incident_key => @incident_key }) unless @incident_key == nil
-    
-    curl = Curl::Easy.new
-    curl.url = "http://events.pagerduty.com/generic/2010-04-15/create_event.json"
-    curl.http_post JSON.generate(params)
-    JSON.parse curl.body_str
+
+    self.class.post '/create_event.json', :body => MultiJson.encode(params)
   end
 end
 
